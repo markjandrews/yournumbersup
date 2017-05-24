@@ -4,12 +4,9 @@ from . import stats
 from .common import BaseDraw
 
 
-class PowerBallDraw(BaseDraw):
+class PowerBallPHDraw(BaseDraw):
     max_ball = 40
     max_combs = [None, None, None, 7, 3, 2, 1]
-
-    min_pball = 10
-    max_pball = 20
 
     def parse_previous_draw(self, data):
 
@@ -21,12 +18,9 @@ class PowerBallDraw(BaseDraw):
 
     def valid_draw(self, balls, sups):
         while not self._is_valid_draw(balls):
-            balls = random.sample(range(1, PowerBallDraw.max_ball + 1), 6)
+            balls = random.sample(range(1, PowerBallPHDraw.max_ball + 1), 6)
 
-        while not self._is_valid_powerball(sups):
-            sups = [random.randint(PowerBallDraw.min_pball, PowerBallDraw.max_pball)]
-
-        return sorted(balls), sorted(sups)
+        return sorted(balls), sups
 
     def _is_valid_draw(self, balls):
 
@@ -37,21 +31,10 @@ class PowerBallDraw(BaseDraw):
 
         for ball_comb in balls_combs:
             comb_count = self.combs_counts.get(ball_comb, -1)
-            if comb_count >= PowerBallDraw.max_combs[len(ball_comb)]:
+            if comb_count >= PowerBallPHDraw.max_combs[len(ball_comb)]:
                 print(ball_comb, comb_count, " - Skipping already draw too many times")
                 return False
 
         self.update_draw_combs(balls)
-
-        return True
-
-    def _is_valid_powerball(self, sups):
-        if sups is None:
-            return False
-
-        powerball = sups[0]
-
-        if powerball < PowerBallDraw.min_pball or powerball > PowerBallDraw.max_pball:
-            return False
 
         return True

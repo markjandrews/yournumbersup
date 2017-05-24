@@ -1,22 +1,17 @@
 import random
 
-from yournumbersup import stats
+from . import stats
+from .common import BaseDraw
 
 
-class OzLottoDraw(object):
+class OzLottoDraw(BaseDraw):
     max_ball = 45
     max_combs = [None, None, None, 12, 6, 3, 2, 2, 1, 1]
-
-    def __init__(self):
-        self.combs_counts = {}
 
     def parse_previous_draw(self, data):
         balls = set([int(x) for x in data[2:11]])
 
-        draw_combs = stats.powerset(balls)
-        for draw_comb in draw_combs:
-            comb_count = self.combs_counts.get(draw_comb, 0)
-            self.combs_counts[draw_comb] = comb_count + 1
+        self.update_draw_combs(balls)
 
     def valid_draw(self, balls, sups):
         while not self._is_valid_draw(balls):
@@ -40,6 +35,6 @@ class OzLottoDraw(object):
                 print(ball_comb, comb_count, " - Skipping already draw too many times")
                 return False
 
-        return True
+        self.update_draw_combs(balls)
 
-        return sorted(balls), sups
+        return True

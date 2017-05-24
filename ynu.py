@@ -10,7 +10,6 @@ from yournumbersup import remote, stats
 SCRIPT_DIR = os.path.dirname(__file__)
 
 numpicks_per_file = 50
-total_count = 100
 
 
 def chunked(iterable, chunksize):
@@ -25,12 +24,14 @@ def chunked(iterable, chunksize):
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Generate numbers to be played for drawing')
     parser.add_argument('game', choices=configs.keys())
-    parser.add_argument('-c', '--games-count', type=int, default=total_count)
+    parser.add_argument('-s', '--total-spend', type=float, required=True)
 
     args = parser.parse_args(argv)
 
     # Get results
     config = configs[args.game]
+
+    games_count = int(args.total_spend * 100) // int(config.cost_per_game * 100)
 
     processor = config.draw_klass()
     for result in remote.pull_results(args.game, config.uri, remote=True):
@@ -38,7 +39,8 @@ def main(argv=sys.argv[1:]):
 
     # Get Previous numpicks_per_file
     previous_picked_list = []
-    output_file = os.path.join(SCRIPT_DIR, 'picked_numbers', '%s_%s.json' % (config.output, args.games_count))
+    output_name = '%s_output' % args.game
+    output_file = os.path.join(SCRIPT_DIR, 'picked_numbers', '%s_%s.json' % (output_name, int(args.total_spend)))
 
     if os.path.exists(output_file):
         with open(output_file, 'r') as inf:
@@ -54,37 +56,25 @@ def main(argv=sys.argv[1:]):
         balls, sups = processor.valid_draw(balls, sups)
         picked_list.append([balls, sups])
 
-    while args.games_count - len(picked_list) > 0:
+    while games_count - len(picked_list) > 0:
         picked_list.append([*processor.valid_draw(None, None)])
 
     picked_list.sort()
 
-    output_file = os.path.join(SCRIPT_DIR, 'picked_numbers', '%s_%s.json' % (config.output, args.games_count))
+    output_file = os.path.join(SCRIPT_DIR, 'picked_numbers', '%s_%s.json' % (output_name, int(args.total_spend)))
     with open(output_file, 'w') as outf:
         json.dump(picked_list, outf, separators=(',', ':'))
 
-    file_num = 1
+    output_file = os.path.join(SCRIPT_DIR, 'picked_numbers', '%s_%s.txt' % (output_name, int(args.total_spend)))
+    with open(output_file, 'w') as outf:
+        for balls, sups in picked_list:
+            outf.write(', '.join([str(x) for x in balls]))
 
-    for chunk in chunked(picked_list, numpicks_per_file):
-        output_file = os.path.join(SCRIPT_DIR, 'picked_numbers',
-                                   '%s%s_%s.json' % (config.output, args.games_count, file_num))
-        with open(output_file, 'w') as outf:
-            json.dump(chunk, outf, separators=(',', ':'))
+            if sups is not None:
+                outf.write(' : ')
+                outf.write(', '.join([str(x) for x in sups]))
 
-        output_file = os.path.join(SCRIPT_DIR, 'picked_numbers',
-                                   '%s%s_%s.txt' % (config.output, args.games_count, file_num))
-        with open(output_file, 'w') as outf:
-            for balls, sups in chunk:
-                outf.write(', '.join([str(x) for x in balls]))
-
-                if sups is not None:
-                    outf.write(' : ')
-                    outf.write(', '.join([str(x) for x in sups]))
-
-                outf.write('\n')
-
-        file_num += 1
-
+            outf.write('\n')
 
 if __name__ == '__main__':
     main()
