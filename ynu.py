@@ -33,9 +33,14 @@ def main(argv=sys.argv[1:]):
 
     games_count = int(args.total_spend * 100) // int(config.cost_per_game * 100)
 
+    print('Spending: %s for %s games' % (args.total_spend, games_count))
+
     processor = config.draw_klass()
     for result in remote.pull_results(args.game, config.uri, remote=True):
         processor.parse_previous_draw(result)
+
+    processor.summarize_stats()
+    processor.games_count = games_count
 
     # Get Previous numpicks_per_file
     previous_picked_list = []
@@ -49,15 +54,16 @@ def main(argv=sys.argv[1:]):
     # Check prevous picked list
     picked_list = []
     for balls, sups in previous_picked_list:
-
         if sups is not None and not isinstance(sups, list):
             sups = [sups]
 
         balls, sups = processor.valid_draw(balls, sups)
         picked_list.append([balls, sups])
+        print('Picked %s draws' % len(picked_list))
 
     while games_count - len(picked_list) > 0:
         picked_list.append([*processor.valid_draw(None, None)])
+        print('Picked %s draws' % len(picked_list))
 
     picked_list.sort()
 
@@ -67,6 +73,7 @@ def main(argv=sys.argv[1:]):
 
     output_file = os.path.join(SCRIPT_DIR, 'picked_numbers', '%s_%s.txt' % (output_name, int(args.total_spend)))
     with open(output_file, 'w') as outf:
+        print('Writing: %s' % output_file)
         for balls, sups in picked_list:
             outf.write(', '.join([str(x) for x in balls]))
 
@@ -75,6 +82,7 @@ def main(argv=sys.argv[1:]):
                 outf.write(', '.join([str(x) for x in sups]))
 
             outf.write('\n')
+
 
 if __name__ == '__main__':
     main()

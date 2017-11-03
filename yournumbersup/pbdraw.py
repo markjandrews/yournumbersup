@@ -7,6 +7,7 @@ from .common import BaseDraw
 class PowerBallDraw(BaseDraw):
     max_ball = 40
     max_combs = [None, None, None, 7, 3, 2, 1]
+    min_min_count = 4
 
     min_pball = 10
     max_pball = 20
@@ -17,11 +18,18 @@ class PowerBallDraw(BaseDraw):
         if data[7] != '-' and data[8] != '-':
             balls.add(int(data[7]))
 
-        self.update_draw_combs(balls)
+        super().parse_previous_draw(balls)
 
     def valid_draw(self, balls, sups):
         while not self._is_valid_draw(balls):
-            balls = random.sample(range(1, PowerBallDraw.max_ball + 1), 6)
+            while True:
+                min_ball = random.choice(self.min_ball_distribution)
+                max_ball = random.choice(self.max_ball_distribution)
+
+                if max_ball - min_ball >= 6:
+                    break;
+
+            balls = random.sample(range(min_ball, max_ball + 1), 6)
 
         while not self._is_valid_powerball(sups):
             sups = [random.randint(PowerBallDraw.min_pball, PowerBallDraw.max_pball)]
@@ -31,6 +39,13 @@ class PowerBallDraw(BaseDraw):
     def _is_valid_draw(self, balls):
 
         if balls is None:
+            return False
+
+        if sorted(balls)[0] > self.max_lowest_ball:
+            return False
+
+        min_ball = self.min_ball_counts.get(min(balls), 0)
+        if min_ball < self.min_min_count:
             return False
 
         balls_combs = stats.powerset(balls)
