@@ -6,10 +6,3 @@ def powerset(iterable):
     s = list(iterable)
     return chain.from_iterable(combinations(s, r) for r in range(3, len(s)+1))
 
-
-class CombinationCount(object):
-
-    def __init__(self, value_set):
-        self.count = 0
-        self.value_set = value_set
-

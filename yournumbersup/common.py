@@ -1,22 +1,29 @@
+import random
 from collections import Counter
 
 from . import stats
 
 
 class BaseDraw(object):
+    max_ball = 0
+    max_combs = []
+
     def __init__(self):
         self.combs_counts = {}
-        self.max_lowest_ball = 0
-        self.min_ball_distribution = []
-        self.max_ball_distribution = []
-        self.min_ball_counts = None
-        self.max_ball_counts = None
+        self.black_list = {}
+        self.lowest_max = BaseDraw.max_ball
+        self.highest_min = 1
 
     def parse_previous_draw(self, balls):
-        lowest_ball = sorted(balls)[0]
 
-        if lowest_ball > self.max_lowest_ball:
-            self.max_lowest_ball = lowest_ball
+        min_ball = min(balls)
+        max_ball = max(balls)
+
+        if min_ball > self.highest_min:
+            self.highest_min = min_ball
+
+        if max_ball < self.lowest_max:
+            self.lowest_max = max_ball
 
         self.update_draw_combs(balls)
 
@@ -26,14 +33,39 @@ class BaseDraw(object):
             comb_count = self.combs_counts.get(draw_comb, 0)
             self.combs_counts[draw_comb] = comb_count + 1
 
-        min_ball = min(balls)
-        self.min_ball_distribution.append(min_ball)
+            if self.combs_counts[draw_comb] >= BaseDraw.max_combs[len(draw_comb)]:
+                self.black_list.setdefault(len(draw_comb), set()).add(draw_comb)
 
-        max_ball = max(balls)
-        self.max_ball_distribution.append(max_ball)
+    def is_valid_draw(self, balls):
+
+        draw_combs = stats.powerset(balls)
+        for draw_comb in draw_combs:
+            if draw_comb in self.black_list.get(len(draw_comb), set()):
+                return False
+
+        return True
+
+    def pick_balls(self, max_ball, pick_count):
+        available_balls = list(range(1, max_ball + 1))
+        picked_balls = set()
+        while pick_count > 0:
+            while True:
+                picked_ball = random.choice(available_balls)
+                picked_balls.add(picked_ball)
+                available_balls.remove(picked_ball)
+
+                if picked_balls in self.black_list.get(len(picked_balls), set()):
+                    print('YAY')
+                    exit(0)
+
+                if len(available_balls) <= 0:
+                    print('OK')
+                    exit(0)
+
+                pick_count -= 1
+                break
+
+        return picked_balls
 
     def summarize_stats(self):
-        self.min_ball_distribution.sort()
-        self.max_ball_distribution.sort()
-        self.min_ball_counts = Counter(self.min_ball_distribution)
-        self.max_ball_counts = Counter(self.max_ball_distribution)
+        pass
